@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  BrowserRouter as Router,
   Switch,
   Route,
   Link,
@@ -11,7 +10,6 @@ import ReduxDemo from './ReduxDemo'
 
 export default function App() {
   return (
-    <Router>
       <div>
         <nav>
           <ul>
@@ -31,7 +29,6 @@ export default function App() {
           <Route path="/" component={Home} />
         </Switch>
       </div>
-    </Router>
   );
 }
 
