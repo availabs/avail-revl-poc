@@ -1,6 +1,6 @@
 import React from "react";
 import logo from './logo.svg';
-import { Counter } from './features/counter/Counter';
+import { Counter } from './Counter';
 
 export default function ReduxDemo(props: any) {
   console.log(props)

@@ -1,6 +1,6 @@
 import React from "react";
 import plugin from './plugin.png'
-import { FizzBuzz } from './features/fizzBuzz/FizzBuzz';
+import { FizzBuzz } from './FizzBuzz';
 
 // Image from https://commons.wikimedia.org/wiki/File:Plug-in_Noun_project_4032.svg
 

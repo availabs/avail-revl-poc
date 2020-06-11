@@ -11,8 +11,8 @@ import {connect } from '@giantmachines/redux-websocket'
 
 import { webSocketServerPort } from './config'
 
-import ReduxDemo from './ReduxDemo'
-import WebSocketDemo from './WebSocketDemo'
+import Counter from './features/counter/CounterDemo'
+import FizzBuzz from './features/fizzBuzz/FizzBuzzDemo'
 
 import './App.css';
 
@@ -40,8 +40,8 @@ export default function App() {
         {/* A <Switch> looks through its children <Route>s and
             renders the first one that matches the current URL. */}
         <Switch>
-          <Route path="/redux-demo" component={ReduxDemo} />
-          <Route path="/websocket-demo" component={WebSocketDemo} />
+          <Route path="/redux-demo" component={Counter} />
+          <Route path="/websocket-demo" component={FizzBuzz} />
           <Route path="/" component={Home} />
         </Switch>
       </div>
