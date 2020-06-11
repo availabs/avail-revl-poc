@@ -4,11 +4,23 @@ import {
   Route,
   Link,
 } from "react-router-dom";
-import './App.css';
+
+import {useDispatch} from 'react-redux';
+
+import {connect } from '@giantmachines/redux-websocket'
+
+import { webSocketServerPort } from './config'
 
 import ReduxDemo from './ReduxDemo'
+import WebSocketDemo from './WebSocketDemo'
+
+import './App.css';
 
 export default function App() {
+  const dispatch = useDispatch();
+
+  dispatch(connect(`ws://localhost:${webSocketServerPort}`))
+
   return (
       <div>
         <nav>
@@ -19,6 +31,9 @@ export default function App() {
             <li>
               <Link to="/redux-demo">Redux Demo</Link>
             </li>
+            <li>
+              <Link to="/websocket-demo">WebSocket Demo</Link>
+            </li>
           </ul>
         </nav>
 
@@ -26,6 +41,7 @@ export default function App() {
             renders the first one that matches the current URL. */}
         <Switch>
           <Route path="/redux-demo" component={ReduxDemo} />
+          <Route path="/websocket-demo" component={WebSocketDemo} />
           <Route path="/" component={Home} />
         </Switch>
       </div>

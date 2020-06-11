@@ -1,8 +1,10 @@
 {
-  "name": "avail-revl",
-  "version": "0.1.0",
+  "name": "avail-revl-template",
+  "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "dependencies": {
+    "@giantmachines/redux-websocket": "^1.2.1",
     "@reduxjs/toolkit": "^1.3.6",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
@@ -14,13 +16,16 @@
     "@types/react-redux": "^7.1.9",
     "@types/react-router-dom": "^5.1.5",
     "connected-react-router": "^6.8.0",
+    "flux-standard-action": "^2.1.1",
+    "lodash": "^4.17.15",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-redux": "^7.2.0",
     "react-router-dom": "^5.2.0",
     "react-scripts": "3.4.1",
     "redux": "^4.0.5",
-    "typescript": "~3.7.2"
+    "typescript": "~3.7.2",
+    "ws": "^7.3.0"
   },
   "scripts": {
     "start": "react-scripts start",
