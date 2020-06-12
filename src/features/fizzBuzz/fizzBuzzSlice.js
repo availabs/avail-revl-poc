@@ -1,5 +1,4 @@
 import {createSlice} from '@reduxjs/toolkit';
-import {send} from '@giantmachines/redux-websocket';
 
 export const fizzBuzzSlice = createSlice({
   name: 'fizzBuzz',
@@ -37,7 +36,7 @@ export const incrementByAmount = amount => (dispatch, getState) => {
 
   const count = selectCount(getState())
 
-  dispatch(send({type: 'FIZZBUZZ_NUM', payload: count}))
+  dispatch({type: 'FIZZBUZZ_NUM', payload: count})
 }
 
 export default fizzBuzzSlice.reducer;

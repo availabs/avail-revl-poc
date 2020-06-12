@@ -24,11 +24,14 @@
     "react-router-dom": "^5.2.0",
     "react-scripts": "3.4.1",
     "redux": "^4.0.5",
+    "ts-node": "^8.10.2",
     "typescript": "~3.7.2",
+    "uuid": "^8.1.0",
     "ws": "^7.3.0"
   },
   "scripts": {
     "start": "react-scripts start",
+    "start_socket_server": "ts-node --project 'webSocketServer/tsconfig.json' webSocketServer/index.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

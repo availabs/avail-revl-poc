@@ -1,11 +1,14 @@
 import {createBrowserHistory} from 'history'
 import {configureStore, getDefaultMiddleware} from '@reduxjs/toolkit';
 import {connectRouter, routerMiddleware} from 'connected-react-router'
+
+import {v4 as uuidv4} from 'uuid'
+
 import {isFSA} from 'flux-standard-action'
 
 import _ from 'lodash'
 
-import reduxWebsocket from '@giantmachines/redux-websocket'
+import reduxWebsocket, {send} from '@giantmachines/redux-websocket'
 import * as reduxWebSocketEvents from './reduxWebSocketEvents'
 
 import counterReducer from '../features/counter/counterSlice';
@@ -15,10 +18,12 @@ export const history = createBrowserHistory()
 
 const {WEBSOCKET_MESSAGE} = reduxWebSocketEvents
 
+const id = `BROWSER::${uuidv4()}`
+
 // Flux Standard Actions sent from WebSocket server
 //   get extracted from redux-websocket MESSAGE actions
 //   and dispatched on their own.
-const extractServerSideAction = _store => next => action => {
+const extractServerSideAction = store => next => action => {
   const {type} = action
 
   if (type === WEBSOCKET_MESSAGE) {
@@ -39,7 +44,15 @@ const extractServerSideAction = _store => next => action => {
       }
     }
   } else {
-    return next(action)
+    next(action)
+  }
+
+  if (isFSA(action) && !type.startsWith('REDUX_WEBSOCKET')) {
+    const _action = {...action}
+    _action.meta = action.meta ? {...action.meta} : {}
+    _action.meta.$source_id = id
+
+    store.dispatch(send(_action))
   }
 }
 
