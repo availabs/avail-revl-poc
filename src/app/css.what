@@ -1,5 +1,0 @@
-// https://stackoverflow.com/a/59221178/3970755
-declare module '*.css' {
-  const classes: { [key: string]: string };
-  export default classes;
-}
