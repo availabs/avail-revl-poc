@@ -3,8 +3,11 @@ import ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
 import { ConnectedRouter } from 'connected-react-router'
 
-import store, { history } from './app/store';
+import store from './store';
 import App from './App';
+
+import history from './utils/history'
+
 import * as serviceWorker from './serviceWorker';
 import './index.css';
 
@@ -23,3 +26,5 @@ ReactDOM.render(
 // unregister() to register() below. Note this comes with some pitfalls.
 // Learn more about service workers: https://bit.ly/CRA-PWA
 serviceWorker.unregister();
+
+export default null

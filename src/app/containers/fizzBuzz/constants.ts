@@ -1,0 +1,4 @@
+export const SLICE_NAME = 'fizzBuzz'
+
+export const INCREMENT_BY_AMOUNT = `${SLICE_NAME}/INCREMENT_BY_AMOUNT`
+export const FIZZBUZZ_MESSAGE = `${SLICE_NAME}/FIZZBUZZ_MESSAGE`

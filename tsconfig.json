@@ -19,9 +19,17 @@
     "noEmit": true,
     "jsx": "react",
     "noImplicitAny": false,
-    "noImplicitThis": false
+    "noImplicitThis": false,
+    "plugins": [
+      {
+        "name": "typescript-plugin-css-modules"
+      }
+    ]
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/server"
   ]
 }

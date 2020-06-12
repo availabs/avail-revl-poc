@@ -4,7 +4,7 @@ import actionEmitter, {INVALID_ACTION_MSG} from './actionEmitter'
 
 import * as registry from './registry'
 
-import {webSocketServerPort} from '../src/config'
+import {webSocketServerPort} from '../config'
 
 // This is just to "inject" the "reducers"
 console.log('Registered "reducers":')
@@ -14,7 +14,7 @@ console.log()
 const wss = new WebSocket.Server({port: webSocketServerPort})
 
 wss.on('connection', ws => {
-  let id
+  let id:string
 
   actionEmitter.on('action', action => {
     const {meta: {$source_id, $target_id, broadcast}} = action
@@ -36,7 +36,7 @@ wss.on('connection', ws => {
     ws.send(JSON.stringify(action))
   })
 
-  ws.on('message', function incoming(serializedAction) {
+  ws.on('message', function incoming(serializedAction:string) {
     try {
       const action = JSON.parse(serializedAction)
 
