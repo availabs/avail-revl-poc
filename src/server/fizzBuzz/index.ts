@@ -7,7 +7,7 @@ import {STORE_CHANGE} from '../../app/store/revl/constants'
 
 import actionEmitter from '../actionEmitter'
 
-const id = 'fizzBuzz'
+const id = 'server::fizzBuzz'
 
 actionEmitter.on('action', action => {
   // Don't echo action back to sender
@@ -29,8 +29,9 @@ actionEmitter.on('action', action => {
       const buzzin = !(newCount % 5) ? 'buzz' : ''
 
       const message = `${fizzin}${buzzin}` || newCount
+      const meta = {$source_id: id, $target_id: $source_id}
 
-      const reaction = updateFizzBuzzMessage(message, {$source_id: id, $target_id: $source_id})
+      const reaction = updateFizzBuzzMessage(message, meta)
 
       return actionEmitter.emit('action', reaction)
     }

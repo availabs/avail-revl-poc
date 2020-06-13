@@ -1,8 +1,33 @@
 import EventEmitter from 'events'
+import { execSync } from 'child_process'
+import {mkdirSync, createWriteStream, unlinkSync} from 'fs'
+import { join } from 'path'
+
+import nodeCleanup from 'node-cleanup'
 
 import {isFSA} from 'flux-standard-action'
 
+const logDir = join(__dirname, 'logs')
+mkdirSync(logDir, { recursive: true })
+
+const actionLogPath = join(logDir, 'tmpActionLogsFifo')
+
+nodeCleanup(() => {
+  try {
+    unlinkSync(actionLogPath)
+  } catch (err) {
+    //
+  }
+})
+
+console.log(`Actions logged to named pipe at ${actionLogPath}`)
+
+// https://github.com/ccnokes/node-fifo-example/blob/197268e4921246a8e85fbaef341d21ea5500a7ee/index.js#L12
+execSync(`mkfifo ${actionLogPath}`)
+const logger = createWriteStream(actionLogPath)
+
 export const INVALID_ACTION_MSG = 'Action is not valid a Flux Standard Action.'
+
 
 const actionEmitter = new EventEmitter()
 
@@ -12,7 +37,8 @@ const actionEmitter = new EventEmitter()
 actionEmitter.on('action', action => {
   // The authoritatve enforcer. Guaranteed to be first in order.
 
-  console.log(JSON.stringify(action, null, 4))
+  logger.write(`${JSON.stringify(action)}\n`)
+
   if (!isFSA(action)) {
     console.error(INVALID_ACTION_MSG)
     throw new Error(INVALID_ACTION_MSG)
