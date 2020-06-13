@@ -1,36 +1,89 @@
+import { hostname } from 'os'
 import EventEmitter from 'events'
 import { execSync } from 'child_process'
-import {mkdirSync, createWriteStream, unlinkSync} from 'fs'
-import { join } from 'path'
+import {existsSync, mkdirSync, createWriteStream, createReadStream, unlinkSync} from 'fs'
+import { join, relative } from 'path'
+import pump from 'pump'
+import split from 'split2'
+import through from 'through2'
 
-import nodeCleanup from 'node-cleanup'
+import exitHook from 'exit-hook'
 
 import {isFSA} from 'flux-standard-action'
+
+interface Action<Payload> {
+  type: string;
+  payload: Payload;
+  error?: boolean;
+  meta?: Object;
+}
 
 const logDir = join(__dirname, 'logs')
 mkdirSync(logDir, { recursive: true })
 
-const actionLogPath = join(logDir, 'tmpActionLogsFifo')
+const actionsLogPath = join(logDir, 'tmpActionLogsFifo')
+const actionsInputPipePath = join(logDir, 'tmpInputFifo')
 
-nodeCleanup(() => {
-  try {
-    unlinkSync(actionLogPath)
-  } catch (err) {
-    //
-  }
-})
+if (existsSync(actionsLogPath)) {
+  unlinkSync(actionsLogPath)
+}
 
+if (existsSync(actionsInputPipePath)) {
+  unlinkSync(actionsInputPipePath)
+}
+
+const relOutPath = relative(process.cwd(), actionsLogPath)
 console.log()
-console.log('To watch the action log:')
-console.log(`     jq . ${actionLogPath}`)
+console.log('Actions output FIFO pipe:', relOutPath)
+console.log(`     jq . ${relOutPath}`)
+console.log()
+
+const id = `${hostname() || ''}::inputFifo`
+
+const relInPath = relative(process.cwd(), actionsInputPipePath)
+console.log('Actions input FIFO pipe:', relInPath)
+console.log(`     echo '{"type":"repl/ECHO","payload":"hi","meta":{"$source_id":"${id}"}}' > ${relInPath}`)
 console.log()
 
 // https://github.com/ccnokes/node-fifo-example/blob/197268e4921246a8e85fbaef341d21ea5500a7ee/index.js#L12
-execSync(`mkfifo ${actionLogPath}`)
-const logger = createWriteStream(actionLogPath)
+execSync(`mkfifo ${actionsLogPath}`)
+execSync(`mkfifo ${actionsInputPipePath}`)
+
+const outputStream = createWriteStream(actionsLogPath)
+
+// https://stackoverflow.com/a/40390938/3970755
+const inputStream = createReadStream(actionsInputPipePath, { flags: 'r+'})
+
+pump(
+  inputStream,
+  split(),
+  through.obj((line, _$:any, cb: ()=>void) => {
+    try {
+      const action:Action<any> = JSON.parse(line)
+      actionEmitter.emit('action', action)
+    } catch (err) {
+      console.error(err.message)
+    } finally {
+    cb()
+    }
+  }),
+  (err:Error) => {
+    if (err) {
+      console.error(err)
+    }
+  }
+)
+
+exitHook(() => {
+  try {
+    unlinkSync(actionsLogPath)
+    unlinkSync(actionsInputPipePath)
+  } catch (err) {
+    console.error(err)
+  }
+})
 
 export const INVALID_ACTION_MSG = 'Action is not valid a Flux Standard Action.'
-
 
 const actionEmitter = new EventEmitter()
 
@@ -40,14 +93,16 @@ const actionEmitter = new EventEmitter()
 actionEmitter.on('action', action => {
   // The authoritatve enforcer. Guaranteed to be first in order.
 
-  logger.write(`${JSON.stringify(action)}\n`)
+  outputStream.write(`${JSON.stringify(action)}\n`)
 
   if (!isFSA(action)) {
     console.error(INVALID_ACTION_MSG)
     throw new Error(INVALID_ACTION_MSG)
   }
-})
+}
+)
 
-
-
-export default actionEmitter
+export default {
+  subscribe: (fn:(...args: any[]) => void) => actionEmitter.on('action', fn),
+  dispatch: (action:Action<any>) => actionEmitter.emit('action', action)
+}

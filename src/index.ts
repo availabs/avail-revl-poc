@@ -2,4 +2,4 @@
 // Answer: You can't without breaking CRA guarantees.
 // https://github.com/facebook/create-react-app/issues/99#issuecomment-234657710
 
-export { default as app } from './app'
+import './app'

@@ -9,7 +9,7 @@ import actionEmitter from '../actionEmitter'
 
 const id = 'server::fizzBuzz'
 
-actionEmitter.on('action', action => {
+actionEmitter.subscribe(action => {
   // Don't echo action back to sender
   if (_.get(action, ['meta', '$source_id']) === id) {
     return
@@ -33,10 +33,10 @@ actionEmitter.on('action', action => {
 
       const reaction = updateFizzBuzzMessage(message, meta)
 
-      return actionEmitter.emit('action', reaction)
+      return actionEmitter.dispatch(reaction)
     }
     default:
   }
 })
 
-export default 'fizzBuzz'
+export default id
