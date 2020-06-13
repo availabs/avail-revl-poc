@@ -93,6 +93,8 @@ const actionEmitter = new EventEmitter()
 actionEmitter.on('action', action => {
   // The authoritatve enforcer. Guaranteed to be first in order.
 
+  action.meta.timestamp = action.meta.timestamp || Date.now()
+
   outputStream.write(`${JSON.stringify(action)}\n`)
 
   if (!isFSA(action)) {
