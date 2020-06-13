@@ -20,7 +20,10 @@ nodeCleanup(() => {
   }
 })
 
-console.log(`Actions logged to named pipe at ${actionLogPath}`)
+console.log()
+console.log('To watch the action log:')
+console.log(`     jq . ${actionLogPath}`)
+console.log()
 
 // https://github.com/ccnokes/node-fifo-example/blob/197268e4921246a8e85fbaef341d21ea5500a7ee/index.js#L12
 execSync(`mkfifo ${actionLogPath}`)
