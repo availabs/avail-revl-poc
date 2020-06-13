@@ -2,13 +2,13 @@ import { getDefaultMiddleware } from '@reduxjs/toolkit';
 import { routerMiddleware } from 'connected-react-router'
 
 import reduxWebsocket from '@giantmachines/redux-websocket'
-import reduxWebSocketEvents from './reduxWebSocketEvents'
+import reduxWebSocketEvents from '../../constants/reduxWebSocketEvents'
 
 import history from '../../utils/history';
 
-import revl from './revl'
+import { revlMiddleware } from '../revl'
 
-export default [routerMiddleware(history), reduxWebsocket(), revl, ...getDefaultMiddleware({
+export default [routerMiddleware(history), reduxWebsocket(), revlMiddleware, ...getDefaultMiddleware({
   // https://github.com/giantmachines/redux-websocket/issues/101#issuecomment-615936023
   serializableCheck: {
       // https://github.com/giantmachines/redux-websocket/issues/101

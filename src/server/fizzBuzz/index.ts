@@ -1,10 +1,11 @@
 import _ from 'lodash'
 
-import {updateFizzBuzzMessage} from '../../containers/fizzBuzz/actions'
+import {updateFizzBuzzMessage} from '../../app/containers/fizzBuzz/actions'
+import {selectCount} from '../../app/containers/fizzBuzz/selectors'
+
+import {STORE_CHANGE} from '../../app/store/revl/constants'
 
 import actionEmitter from '../actionEmitter'
-
-const FIZZBUZZ_NUM = 'FIZZBUZZ_NUM'
 
 const id = 'fizzBuzz'
 
@@ -17,11 +18,17 @@ actionEmitter.on('action', action => {
   const {type, payload, meta: {$source_id}} = action
 
   switch (type) {
-    case FIZZBUZZ_NUM: {
-      const fizzin = !(payload % 3) ? 'fizz' : ''
-      const buzzin = !(payload % 5) ? 'buzz' : ''
+    case STORE_CHANGE: {
+      const newCount = selectCount(payload)
 
-      const message = `${fizzin}${buzzin}` || payload
+      if (_.isNil(newCount)) {
+        return
+      }
+
+      const fizzin = !(newCount % 3) ? 'fizz' : ''
+      const buzzin = !(newCount % 5) ? 'buzz' : ''
+
+      const message = `${fizzin}${buzzin}` || newCount
 
       const reaction = updateFizzBuzzMessage(message, {$source_id: id, $target_id: $source_id})
 
