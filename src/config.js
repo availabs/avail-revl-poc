@@ -1,3 +1,3 @@
 module.exports = {
-  webSocketServerPort: 7777
-}
+  webSocketServerPort: 7777,
+};

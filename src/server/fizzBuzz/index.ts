@@ -1,42 +1,47 @@
-import _ from 'lodash'
+import _ from "lodash";
 
-import {updateFizzBuzzMessage} from '../../app/containers/fizzBuzz/actions'
-import {selectCount} from '../../app/containers/fizzBuzz/selectors'
+import { updateFizzBuzzMessage } from "../../app/containers/fizzBuzz/actions";
+import { selectCount } from "../../app/containers/fizzBuzz/selectors";
 
-import {STORE_CHANGE} from '../../app/store/revl/constants'
+import { STORE_CHANGE } from "../../app/store/revl/constants";
 
-import actionEmitter from '../actionEmitter'
+import actionEmitter from "../actionEmitter";
 
-const id = 'server::fizzBuzz'
+const id = "server::fizzBuzz";
 
-actionEmitter.subscribe(action => {
+actionEmitter.subscribe((action) => {
   // Don't echo action back to sender
-  if (_.get(action, ['meta', '$source_id']) === id) {
-    return
+  if (_.get(action, ["meta", "$source_id"]) === id) {
+    return null;
   }
 
-  const {type, payload, meta: {$source_id}} = action
+  const {
+    type,
+    payload,
+    meta: { $source_id },
+  } = action;
 
   switch (type) {
     case STORE_CHANGE: {
-      const newCount = selectCount(payload)
+      const newCount = selectCount(payload);
 
       if (_.isNil(newCount)) {
-        return
+        return null;
       }
 
-      const fizzin = !(newCount % 3) ? 'fizz' : ''
-      const buzzin = !(newCount % 5) ? 'buzz' : ''
+      const fizzin = !(newCount % 3) ? "fizz" : "";
+      const buzzin = !(newCount % 5) ? "buzz" : "";
 
-      const message = `${fizzin}${buzzin}` || newCount
-      const meta = {$source_id: id, $target_id: $source_id}
+      const message = `${fizzin}${buzzin}` || newCount;
+      const meta = { $source_id: id, $target_id: $source_id };
 
-      const reaction = updateFizzBuzzMessage(message, meta)
+      const reaction = updateFizzBuzzMessage(message, meta);
 
-      return actionEmitter.dispatch(reaction)
+      return actionEmitter.dispatch(reaction);
     }
     default:
+      return null;
   }
-})
+});
 
-export default id
+export default id;
