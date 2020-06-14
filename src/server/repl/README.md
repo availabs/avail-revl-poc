@@ -1,0 +1,7 @@
+# The REPL
+
+- [Starting multiple REPL instances against a single running instance](https://nodejs.org/api/repl.html#repl_starting_multiple_repl_instances_against_a_single_running_instance)
+- [What's the difference between Unix socket and TCP/IP socket?](https://serverfault.com/questions/124517/whats-the-difference-between-unix-socket-and-tcp-ip-socket)
+  [Enable command history in REPL](https://github.com/babel/babel/issues/1965#issuecomment-286942972)
+- [Running a "full-featured" REPL using a net.Server and net.Socket](https://gist.github.com/TooTallNate/2209310)
+- [Mastering the Node.js REPL (part 3)](https://medium.com/trabe/mastering-the-node-js-repl-part-3-c0374be0d1bf)
