@@ -61,6 +61,7 @@ export const revlMiddleware = (store) => (next) => (action) => {
   return null;
 };
 
+// Need this because the "store" passed to middleware does not include the subscribe method.
 export const watchStore = (store) => {
   const w = watch(store.getState);
 
