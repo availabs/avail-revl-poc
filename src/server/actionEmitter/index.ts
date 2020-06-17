@@ -18,7 +18,7 @@ import tmpDir from "../utils/tmpDir";
 
 interface Action<Payload> {
   type: string;
-  payload: Payload;
+  payload?: Payload;
   error?: boolean;
   meta?: Object;
 }

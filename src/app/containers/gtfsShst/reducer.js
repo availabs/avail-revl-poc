@@ -4,27 +4,27 @@
 // immutable state based off those changes
 import { createSlice } from "@reduxjs/toolkit";
 
-import { SLICE_NAME, INCREMENT_BY_AMOUNT, FIZZBUZZ_MESSAGE } from "./constants";
+import { SLICE_NAME, MATCHED } from "./constants";
 
-export const fizzBuzzSlice = createSlice({
+export const storeSlice = createSlice({
   name: SLICE_NAME,
   initialState: {
-    count: 0,
-    message: "",
+    gtfsNetworkEdge: null,
+    shstMatches: null,
   },
 
   // https://redux-toolkit.js.org/api/createslice#the-builder-callback-api-for-extrareducers
   extraReducers: (builder) => {
-    builder.addCase(INCREMENT_BY_AMOUNT, (state, action) => {
-      state.count += action.payload;
-    });
-
-    builder.addCase(FIZZBUZZ_MESSAGE, (state, { payload }) => {
-      state.message = payload;
-    });
+    builder.addCase(
+      MATCHED,
+      (state, { payload: { gtfsNetworkEdge, shstMatches } }) => {
+        state.gtfsNetworkEdge = gtfsNetworkEdge;
+        state.shstMatches = shstMatches;
+      }
+    );
   },
 });
 
-export const fizzBuzzStoreSliceName = SLICE_NAME;
+export const gtfsShstStoreSliceName = SLICE_NAME;
 
-export default fizzBuzzSlice.reducer;
+export default storeSlice.reducer;

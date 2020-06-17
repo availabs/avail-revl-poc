@@ -4,18 +4,26 @@
  * Combine all reducers in this file and export the combined reducers.
  */
 
-import {combineReducers} from 'redux';
-import {connectRouter} from 'connected-react-router';
+import { combineReducers } from "redux";
+import { connectRouter } from "connected-react-router";
 
-import history from '../utils/history';
-import fizzBuzzReducer from '../containers/fizzBuzz/reducer';
+import history from "../utils/history";
+
+import fizzBuzzReducer, {
+  fizzBuzzStoreSliceName,
+} from "../containers/fizzBuzz/reducer";
+
+import gtfsShstReducer, {
+  gtfsShstStoreSliceName,
+} from "../containers/gtfsShst/reducer";
 
 /**
  * Merges the main reducer with the router state and dynamically injected reducers
  */
 export default (injectedReducers = {}) =>
   combineReducers({
-    fizzBuzz: fizzBuzzReducer,
+    [fizzBuzzStoreSliceName]: fizzBuzzReducer,
+    [gtfsShstStoreSliceName]: gtfsShstReducer,
     router: connectRouter(history),
     ...injectedReducers,
   });
