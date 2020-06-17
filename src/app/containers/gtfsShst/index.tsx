@@ -1,12 +1,9 @@
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 
+import Button from "@material-ui/core/Button";
 import { nextGtfsNetworkEdgeMatch } from "./actions";
 import { selectGtfsNetworkEdge, selectShstMatches } from "./selectors";
-
-import styles from "./style.module.css";
-
-import icon from "./images/plugin.png";
 
 // Image from https://commons.wikimedia.org/wiki/File:Plug-in_Noun_project_4032.svg
 export default function GtfsShstView() {
@@ -18,20 +15,12 @@ export default function GtfsShstView() {
   console.log({ gtfsNetworkEdge, shstMatches });
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={icon} alt="logo" />
-        <div className={styles.row}>
-          <button
-            type="button"
-            className={styles.button}
-            aria-label="Send Next Match"
-            onClick={() => dispatch(nextGtfsNetworkEdgeMatch())}
-          >
-            NEXT
-          </button>
-        </div>
-      </header>
-    </div>
+    <Button
+      variant="contained"
+      color="primary"
+      onClick={() => dispatch(nextGtfsNetworkEdgeMatch())}
+    >
+      NEXT
+    </Button>
   );
 }
