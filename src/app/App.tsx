@@ -12,8 +12,6 @@ import Toolbar from "@material-ui/core/Toolbar";
 import List from "@material-ui/core/List";
 
 import Container from "@material-ui/core/Container";
-import Grid from "@material-ui/core/Grid";
-import Paper from "@material-ui/core/Paper";
 import CardMedia from "@material-ui/core/CardMedia";
 
 import Divider from "@material-ui/core/Divider";
@@ -32,9 +30,11 @@ import DirectionsBusIcon from "@material-ui/icons/DirectionsBus";
 import FizzBuzz from "./containers/fizzBuzz/index";
 import GtfsShst from "./containers/gtfsShst/index";
 
-import useStyles from "./useStyles";
+import useStyles from "./styles/useStyles";
 
 import logo from "./images/avail.png";
+
+import id from "./constants/id";
 
 const navListItems = (
   <div>
@@ -109,7 +109,7 @@ function Dashboard() {
             noWrap
             className={classes.title}
           >
-            AVAIL REVL Prototype
+            WebSocket ID: {id}
           </Typography>
         </Toolbar>
       </AppBar>

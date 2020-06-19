@@ -1,26 +1,49 @@
-import React from "react";
-import { useSelector, useDispatch } from "react-redux";
+import React, { useEffect } from "react";
+import { useDispatch } from "react-redux";
 
-import Button from "@material-ui/core/Button";
-import { nextGtfsNetworkEdgeMatch } from "./actions";
-import { selectGtfsNetworkEdge, selectShstMatches } from "./selectors";
+import Container from "@material-ui/core/Container";
+import Grid from "@material-ui/core/Grid";
+import Paper from "@material-ui/core/Paper";
 
-// Image from https://commons.wikimedia.org/wiki/File:Plug-in_Noun_project_4032.svg
+import { requestGtfsNetwork } from "./actions";
+
+import MapboxMap from "./MapboxMap";
+import ShapesSummaryTable from "./ShapesSummaryTable";
+
+import useStyles from "../../styles/useStyles";
+
 export default function GtfsShstView() {
-  const gtfsNetworkEdge = useSelector(selectGtfsNetworkEdge);
-  const shstMatches = useSelector(selectShstMatches);
-
   const dispatch = useDispatch();
 
-  console.log({ gtfsNetworkEdge, shstMatches });
+  const classes = useStyles();
+
+  // https://stackoverflow.com/a/57530482/3970755 (dispatch function identity is stable)
+  // https://github.com/facebook/create-react-app/issues/6880#issuecomment-486636121
+  useEffect(() => {
+    console.log("REQUEST NETWORK SIDE EFFECT");
+
+    dispatch(requestGtfsNetwork());
+  }, [dispatch]);
 
   return (
-    <Button
-      variant="contained"
-      color="primary"
-      onClick={() => dispatch(nextGtfsNetworkEdgeMatch())}
-    >
-      NEXT
-    </Button>
+    <main className={classes.content}>
+      <div className={classes.appBarSpacer} />
+      <Container maxWidth="lg" className={classes.container}>
+        <Grid container spacing={3}>
+          {/* Chart */}
+          <Grid item lg={12}>
+            <Paper className={classes.paper} style={{ height: 800 }}>
+              <MapboxMap />
+            </Paper>
+          </Grid>
+          {/* Table */}
+          <Grid item lg={12}>
+            <Paper className={classes.paper}>
+              <ShapesSummaryTable />
+            </Paper>
+          </Grid>
+        </Grid>
+      </Container>
+    </main>
   );
 }

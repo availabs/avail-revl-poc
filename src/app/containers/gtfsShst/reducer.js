@@ -4,17 +4,45 @@
 // immutable state based off those changes
 import { createSlice } from "@reduxjs/toolkit";
 
-import { SLICE_NAME, MATCHED } from "./constants";
+import _ from "lodash";
+
+import {
+  SLICE_NAME,
+  NETWORK_RECEIVED,
+  MATCHED,
+  GTFS_SHAPES_SELECTED,
+  GTFS_SHAPES_SELECTED_RESET,
+} from "./constants";
+
+const initialState = {
+  gtfsNetworkEdges: [],
+  selectedGtfsShapes: [],
+  gtfsNetworkEdge: null,
+  shstMatches: null,
+};
+
+const getAllGtfsShapes = (gtfsNetworkEdges) =>
+  Array.isArray(gtfsNetworkEdges)
+    ? gtfsNetworkEdges
+        .map((edge) => _.get(edge, ["properties", "shape_id"], null))
+        .filter((shapeId) => shapeId)
+    : [];
 
 export const storeSlice = createSlice({
   name: SLICE_NAME,
-  initialState: {
-    gtfsNetworkEdge: null,
-    shstMatches: null,
-  },
+  initialState,
 
   // https://redux-toolkit.js.org/api/createslice#the-builder-callback-api-for-extrareducers
   extraReducers: (builder) => {
+    builder.addCase(
+      NETWORK_RECEIVED,
+      (state, { payload: gtfsNetworkEdges }) => {
+        console.log(NETWORK_RECEIVED);
+        state.gtfsNetworkEdges = gtfsNetworkEdges;
+        state.selectedGtfsShapes = getAllGtfsShapes(state.gtfsNetworkEdges);
+      }
+    );
+
     builder.addCase(
       MATCHED,
       (state, { payload: { gtfsNetworkEdge, shstMatches } }) => {
@@ -22,6 +50,17 @@ export const storeSlice = createSlice({
         state.shstMatches = shstMatches;
       }
     );
+
+    builder.addCase(
+      GTFS_SHAPES_SELECTED,
+      (state, { payload: selectedGtfsShapes }) => {
+        state.selectedGtfsShapes = selectedGtfsShapes;
+      }
+    );
+
+    builder.addCase(GTFS_SHAPES_SELECTED_RESET, (state) => {
+      state.selectedGtfsShapes = getAllGtfsShapes(state.gtfsNetworkEdges);
+    });
   },
 });
 

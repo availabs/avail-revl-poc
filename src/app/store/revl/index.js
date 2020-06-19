@@ -7,16 +7,23 @@ import _ from "lodash";
 
 import { isFSA } from "flux-standard-action";
 
-import { MESSAGE } from "../../constants/reduxWebSocketEvents";
-
 import { webSocketServerPort } from "../../../config";
-import { STORE_CHANGE } from "./constants";
+import {
+  WEBSOCKET_OPEN,
+  WEBSOCKET_CLOSED,
+  WEBSOCKET_MESSAGE,
+  STORE_CHANGE,
+} from "./constants";
 
 import id from "../../constants/id";
 
 const connectToSocketServer = _.once((dispatch) =>
   dispatch(connect(`ws://localhost:${webSocketServerPort}`))
 );
+
+let socketIsOpen = false;
+const actionsQueue = [];
+
 // Flux Standard Actions sent from WebSocket server
 //   get extracted from redux-websocket MESSAGE actions
 //   and dispatched on their own.
@@ -25,7 +32,20 @@ export const revlMiddleware = (store) => (next) => (action) => {
 
   connectToSocketServer(store.dispatch);
 
-  if (type === MESSAGE) {
+  if (type === WEBSOCKET_OPEN) {
+    socketIsOpen = true;
+    while (socketIsOpen && actionsQueue.length) {
+      const _action = actionsQueue.shift();
+
+      store.dispatch(send(_action));
+    }
+  }
+
+  if (type === WEBSOCKET_CLOSED) {
+    socketIsOpen = false;
+  }
+
+  if (type === WEBSOCKET_MESSAGE) {
     const { payload: { message = null } = {} } = action;
 
     if (typeof message === "string") {
@@ -55,7 +75,11 @@ export const revlMiddleware = (store) => (next) => (action) => {
     _action.meta = action.meta ? { ...action.meta } : {};
     _action.meta.$source_id = $source_id;
 
-    store.dispatch(send(_action));
+    if (socketIsOpen) {
+      store.dispatch(send(_action));
+    } else {
+      actionsQueue.push(_action);
+    }
   }
 
   return null;
