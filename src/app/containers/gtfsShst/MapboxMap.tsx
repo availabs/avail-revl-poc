@@ -1,5 +1,7 @@
 // https://docs.mapbox.com/help/tutorials/use-mapbox-gl-js-with-react/
 // https://docs.mapbox.com/mapbox-gl-js/example/live-update-feature/
+// https://docs.mapbox.com/mapbox-gl-js/style-spec/expressions
+// https://docs.mapbox.com/help/glossary/data-driven-styling/
 
 import React, {
   useState,
@@ -119,9 +121,11 @@ export default function MapboxMap() {
         popup.remove();
       });
 
+      // https://docs.mapbox.com/mapbox-gl-js/example/polygon-popup-on-click/
       // https://docs.mapbox.com/mapbox-gl-js/example/queryrenderedfeatures-around-point/
       _map.on("click", (e: any) => {
         const bbox = [e.point.x, e.point.y, e.point.x, e.point.y];
+        // https://docs.mapbox.com/mapbox-gl-js/api/map/#map#queryrenderedfeatures
         const features = _map.queryRenderedFeatures(bbox, {
           layers: [target_map],
         });
@@ -159,6 +163,9 @@ export default function MapboxMap() {
   }, [map, gtfsNetworkEdges]);
 
   // update the map's target_map filter when new selectedGtfsShapes
+  // https://docs.mapbox.com/help/tutorials/create-interactive-hover-effects-with-mapbox-gl-js/
+  // https://github.com/mapbox/mapbox-gl-js/issues/6876#issuecomment-401136352
+  // https://docs.mapbox.com/mapbox-gl-js/api/map/#map#setfilter
   useEffect(() => {
     if (map !== null && Array.isArray(gtfsNetworkEdges)) {
       console.log("target_map filters update");
@@ -166,6 +173,7 @@ export default function MapboxMap() {
       // Set the filter
       const shapeIds = selectedGtfsShapes || [];
 
+      // https://github.com/mapbox/mapbox-gl-js/issues/7759#issuecomment-453034895
       const filter = shapeIds.length
         ? ["in", "shape_id"].concat(shapeIds)
         : false;

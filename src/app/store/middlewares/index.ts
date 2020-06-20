@@ -11,6 +11,7 @@ export default [
   routerMiddleware(history),
   reduxWebsocket(),
   revlMiddleware,
+  // https://redux-toolkit.js.org/api/getDefaultMiddleware#api-reference
   ...getDefaultMiddleware({
     // https://github.com/reduxjs/redux-toolkit/issues/415#issuecomment-596812204
     immutableCheck: false,
