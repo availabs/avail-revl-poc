@@ -7,7 +7,7 @@ import _ from "lodash";
 
 import { isFSA } from "flux-standard-action";
 
-import { webSocketServerPort } from "../../../config";
+import { host, webSocketServerPort } from "../../../config";
 import {
   WEBSOCKET_OPEN,
   WEBSOCKET_CLOSED,
@@ -18,7 +18,7 @@ import {
 import id from "../../constants/id";
 
 const connectToSocketServer = _.once((dispatch) =>
-  dispatch(connect(`ws://localhost:${webSocketServerPort}`))
+  dispatch(connect(`ws://${host}:${webSocketServerPort}`))
 );
 
 let socketIsOpen = false;

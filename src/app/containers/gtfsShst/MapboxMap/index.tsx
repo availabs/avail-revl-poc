@@ -2,7 +2,7 @@
 // https://docs.mapbox.com/mapbox-gl-js/example/live-update-feature/
 // https://docs.mapbox.com/mapbox-gl-js/style-spec/expressions
 // https://docs.mapbox.com/help/glossary/data-driven-styling/
-
+// https://docs.mapbox.com/mapbox-gl-js/style-spec/expressions/#camera-expressions
 // https://stackoverflow.com/questions/46102553/showing-direction-arrow-on-line-in-mapboxgl
 
 import React, {
@@ -24,6 +24,7 @@ import Switch from "@material-ui/core/Switch";
 import Grid from "@material-ui/core/Grid";
 import Paper from "@material-ui/core/Paper";
 import Typography from "@material-ui/core/Typography";
+import Tooltip from "@material-ui/core/Tooltip";
 
 // https://stackoverflow.com/q/50909438/3970755
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -58,11 +59,6 @@ const shstMatchesLayer = {
     "line-color": "blue",
     "line-opacity": 0.75,
     "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1, 14, 3],
-    // https://docs.mapbox.com/mapbox-gl-js/style-spec/expressions/#camera-expressions
-    // TODO:
-    //   Data driven style, offset increases by pp_match_index
-    //   https://stackoverflow.com/a/56376824/3970755
-    "line-offset": ["interpolate", ["linear"], ["zoom"], 8, 0, 14, 3],
   },
 };
 
@@ -70,6 +66,48 @@ const shstMatchesLayer = {
 const mapboxDarkStyle = "mapbox://styles/mapbox/dark-v10";
 // Tried, but wow!  https://github.com/mapbox/mapbox-gl-js/issues/4006
 // const mapboxSatelliteStyle = "mapbox://styles/mapbox/satellite-streets-v11";
+
+function fitMapBounds(
+  map: any,
+  gtfsNetworkEdges: any,
+  selectedGtfsShapes: any
+) {
+  if (map !== null && Array.isArray(gtfsNetworkEdges)) {
+    // Set the filter
+    const shapeIds = selectedGtfsShapes || [];
+
+    // https://github.com/mapbox/mapbox-gl-js/issues/7759#issuecomment-453034895
+    const filter = shapeIds.length
+      ? ["in", "shape_id"].concat(shapeIds)
+      : false;
+
+    map.setFilter(target_map_lines, filter);
+
+    if (shapeIds.length) {
+      // Set the bounds
+      const shapesSet = new Set(shapeIds);
+
+      const selectedFeatureCollection = turf.featureCollection(
+        gtfsNetworkEdges.filter(({ properties: { shape_id } }) =>
+          shapesSet.has(shape_id)
+        )
+      );
+
+      const featuresBBox = turf.bbox(selectedFeatureCollection);
+
+      const fSW = featuresBBox.slice(0, 2);
+      const fNE = featuresBBox.slice(-2);
+
+      const lonBuffer = (fNE[0] - fSW[0]) / 33;
+      const latBuffer = (fNE[1] - fSW[1]) / 33;
+
+      const sw = [fSW[0] - lonBuffer, fSW[1] - latBuffer];
+      const ne = [fNE[0] + lonBuffer, fNE[1] + latBuffer];
+
+      map.fitBounds([sw, ne]);
+    }
+  }
+}
 
 export default function MapboxMap() {
   const classes = useStyles();
@@ -105,19 +143,6 @@ export default function MapboxMap() {
     // https://docs.mapbox.com/help/tutorials/use-mapbox-gl-js-with-react/#set-the-apps-default-state
     _map.on("load", () => {
       _map.addSource(target_map_lines, { type: "geojson", data: null });
-
-      // const foo = [
-      // "case",
-      // [
-      // "all",
-      // ["==", ["get", "matched"], "True"],
-      // ["!=", ["get", "vehicle"], ["get", "standstill_vehicle"]],
-      // ],
-      // "orangemarker",
-      // ["==", ["get", "matched"], "True"],
-      // "greenmarker",
-      // "redmarker",
-      // ];
 
       _map.addLayer({
         id: target_map_lines,
@@ -194,11 +219,7 @@ export default function MapboxMap() {
       setMap(_map);
     });
     // https://reactjs.org/docs/hooks-effect.html#tip-optimizing-performance-by-skipping-effects
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
-
-  // update the map's style
-  useEffect(() => {}, [map, explodeShstMatches]);
 
   // update the map's target_map_lines source layer when a new gtfsNetwork is provided.
   useEffect(() => {
@@ -247,7 +268,7 @@ export default function MapboxMap() {
                 // id = match_id
                 // pp_id = shape segment id
                 // pp_shape_id = GTFS shape id
-                ["id", "pp_id", "pp_shape_id"]
+                ["id", "pp_id", "pp_shape_id", "pp_match_index"]
               ),
               { id: feature.id }
             )
@@ -262,6 +283,7 @@ export default function MapboxMap() {
           type: "geojson",
           data: featureCollection,
         });
+
         map.addLayer(shstMatchesLayer);
       } else if (map.style.getLayer(shst_matches)) {
         // https://github.com/visgl/react-map-gl/issues/474#issuecomment-371471634
@@ -271,74 +293,78 @@ export default function MapboxMap() {
     }
   }, [map, selectedGtfsShapes, shstMatches]);
 
+  // update the map's style
+  useEffect(() => {
+    if (map !== null && map.style.getLayer(shst_matches)) {
+      const offsetExpression = explodeShstMatches
+        ? [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            16,
+            0,
+            18,
+            ["+", ["get", "pp_match_index"], 1],
+          ]
+        : ["interpolate", ["linear"], ["zoom"], 8, 0, 14, 3];
+      map.setPaintProperty(shst_matches, "line-offset", offsetExpression);
+    }
+  }, [map, shstMatches, explodeShstMatches]);
+
   // update the map's target_map_lines filter when new selectedGtfsShapes
   // https://docs.mapbox.com/help/tutorials/create-interactive-hover-effects-with-mapbox-gl-js/
   // https://github.com/mapbox/mapbox-gl-js/issues/6876#issuecomment-401136352
   // https://docs.mapbox.com/mapbox-gl-js/api/map/#map#setfilter
   useEffect(() => {
     if (map !== null && Array.isArray(gtfsNetworkEdges)) {
-      // Set the filter
-      const shapeIds = selectedGtfsShapes || [];
-
-      // https://github.com/mapbox/mapbox-gl-js/issues/7759#issuecomment-453034895
-      const filter = shapeIds.length
-        ? ["in", "shape_id"].concat(shapeIds)
-        : false;
-
-      map.setFilter(target_map_lines, filter);
-
-      if (shapeIds.length) {
-        // Set the bounds
-        const shapesSet = new Set(shapeIds);
-
-        const selectedFeatureCollection = turf.featureCollection(
-          gtfsNetworkEdges.filter(({ properties: { shape_id } }) =>
-            shapesSet.has(shape_id)
-          )
-        );
-
-        const featuresBBox = turf.bbox(selectedFeatureCollection);
-
-        const fSW = featuresBBox.slice(0, 2);
-        const fNE = featuresBBox.slice(-2);
-
-        const lonBuffer = (fNE[0] - fSW[0]) / 33;
-        const latBuffer = (fNE[1] - fSW[1]) / 33;
-
-        const sw = [fSW[0] - lonBuffer, fSW[1] - latBuffer];
-        const ne = [fNE[0] + lonBuffer, fNE[1] + latBuffer];
-
-        map.fitBounds([sw, ne]);
-      }
+      fitMapBounds(map, gtfsNetworkEdges, selectedGtfsShapes);
     }
   }, [map, gtfsNetworkEdges, selectedGtfsShapes]);
 
   const header =
     Array.isArray(selectedGtfsShapes) && selectedGtfsShapes.length === 1 ? (
       <FormGroup row>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={showShstMatches}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                setShowShstMatches(event.target.checked);
-              }}
-            />
+        <Tooltip
+          title={
+            <Typography>
+              Show the output of the conflation process for the selected GTFS
+              shape.
+            </Typography>
           }
-          label="Show Matches"
-        />
-        <FormControlLabel
-          control={
-            <Switch
-              disabled={!showShstMatches}
-              checked={explodeShstMatches}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                setExplodeShstMatches(event.target.checked);
-              }}
-            />
+        >
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showShstMatches}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  setShowShstMatches(event.target.checked);
+                }}
+              />
+            }
+            label="Show Matches"
+          />
+        </Tooltip>
+        <Tooltip
+          title={
+            <Typography>
+              If explode matches is enabled, matches for a GTFS network segment
+              are offset at closer zoom levels for distingishability.
+            </Typography>
           }
-          label="Explode Matches"
-        />
+        >
+          <FormControlLabel
+            control={
+              <Switch
+                disabled={!showShstMatches}
+                checked={explodeShstMatches}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  setExplodeShstMatches(event.target.checked);
+                }}
+              />
+            }
+            label="Explode Matches"
+          />
+        </Tooltip>
       </FormGroup>
     ) : (
       <Typography>

@@ -29,7 +29,7 @@ export default function GtfsShstView() {
       <Container maxWidth="lg" className={classes.container}>
         <Grid container spacing={3}>
           {/* Chart */}
-          <Grid item lg={12}>
+          <Grid item sm={12} md={12} lg={12}>
             <MapboxMap />
           </Grid>
           {/* Table */}
