@@ -23,6 +23,8 @@ interface Action<Payload> {
   meta?: Object;
 }
 
+// TODO: Interface for a Redux Thunk that MUST NOT have getState param
+
 const actionsLogPath = join(tmpDir, "tmpActionLogsFifo");
 const actionsInputPipePath = join(tmpDir, "tmpInputFifo");
 

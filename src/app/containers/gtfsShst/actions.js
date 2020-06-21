@@ -1,84 +1,84 @@
+import _ from "lodash";
+
 import {
-  ITERATE,
-  NETWORK_REQUESTED,
-  NETWORK_RECEIVED,
+  GTFS_NETWORK_REQUESTED,
+  GTFS_NETWORK_RECEIVED,
   GTFS_SHAPES_SELECTED,
   GTFS_SHAPES_SELECTED_RESET,
-  NEXT,
-  RETRIEVED_NETEDGE,
-  MATCHED,
-  CLOSE,
-  CLOSED,
-  DONE,
-  RESTART,
+  SHST_MATCHES_REQUESTED,
+  SHST_MATCHES_RECEIVED,
 } from "./constants";
 
-export const iterateGtfsNetworkEdgeMatches = (meta) => {
-  return {
-    type: ITERATE,
+import { getShstMatches } from "./selectors";
+
+const SHST_MATCHES_REQUEST_LIMIT = 5;
+
+export const requestGtfsNetwork = (meta = {}) => (dispatch) =>
+  dispatch({
+    type: GTFS_NETWORK_REQUESTED,
     meta,
-  };
+  });
+
+export const gtfsNetworkReceived = (network, meta = {}) => (dispatch) =>
+  dispatch({
+    type: GTFS_NETWORK_RECEIVED,
+    payload: network,
+    meta,
+  });
+
+export const requestShstMatches = (gtfsShapesIds, meta = {}) => (
+  dispatch,
+  getState
+) => {
+  const shstMatches = getShstMatches(getState());
+
+  console.log({ gtfsShapesIds, shstMatches });
+
+  const reqGtfsShapes =
+    Array.isArray(gtfsShapesIds) && gtfsShapesIds.length > 0
+      ? gtfsShapesIds.filter((shapeId) => _.isUndefined(shstMatches[shapeId]))
+      : [];
+
+  return reqGtfsShapes.length > 0
+    ? dispatch({
+        type: SHST_MATCHES_REQUESTED,
+        payload: reqGtfsShapes,
+        meta,
+      })
+    : Promise.resolve();
 };
 
-export const requestGtfsNetwork = (meta = {}) => ({
-  type: NETWORK_REQUESTED,
-  meta,
-});
+export const gtfsShapesSelected = (selectedGtfsShapes, meta = {}) => async (
+  dispatch
+) => {
+  await dispatch({
+    type: GTFS_SHAPES_SELECTED,
+    payload: selectedGtfsShapes,
+    meta,
+  });
 
-export const sendNetwork = (network, meta = {}) => ({
-  type: NETWORK_RECEIVED,
-  payload: network,
-  meta,
-});
+  console.log(selectedGtfsShapes.length);
+  if (Array.isArray(selectedGtfsShapes)) {
+    if (selectedGtfsShapes.length <= SHST_MATCHES_REQUEST_LIMIT) {
+      console.log("Request matches for selectedShapes");
+      await dispatch(requestShstMatches(selectedGtfsShapes, meta));
+    } else {
+      console.warn(
+        `SharedStreets matches requests limited to ${SHST_MATCHES_REQUEST_LIMIT} GTFS shapes.`
+      );
+    }
+  }
+};
 
-export const gtfsShapesSelected = (selectedGtfsShapes, meta = {}) => ({
-  type: GTFS_SHAPES_SELECTED,
-  payload: selectedGtfsShapes,
-  meta,
-});
+export const gtfsShapesSelectedReset = (meta = {}) => (dispatch) =>
+  dispatch({
+    type: GTFS_SHAPES_SELECTED_RESET,
+    meta,
+  });
 
-export const gtfsShapesSelectedReset = (meta = {}) => ({
-  type: GTFS_SHAPES_SELECTED_RESET,
-  meta,
-});
-
-export const nextGtfsNetworkEdgeMatch = (meta = {}) => ({
-  type: NEXT,
-  meta,
-});
-
-export const retrievedGtfsNetworkEdge = (gtfsNetworkEdge, meta = {}) => ({
-  type: RETRIEVED_NETEDGE,
-  payload: { gtfsNetworkEdge },
-  meta,
-});
-
-export const matchedGtfsNetworkEdge = (
-  gtfsNetworkEdge,
-  shstMatches,
-  meta = {}
-) => ({
-  type: MATCHED,
-  payload: { gtfsNetworkEdge, shstMatches },
-  meta,
-});
-
-export const gtfsNetworkEdgeIteratorDone = (meta = {}) => ({
-  type: DONE,
-  meta,
-});
-
-export const closeGtfsNetworkEdgeIterator = (meta = {}) => ({
-  type: CLOSE,
-  meta,
-});
-
-export const gtfsNetworkEdgeIteratorClosed = (meta = {}) => ({
-  type: CLOSED,
-  meta,
-});
-
-export const restartGtfsNetworkEdgeIterator = (meta = {}) => ({
-  type: RESTART,
-  meta,
-});
+export const shstMatchesReceived = (shstMatches, meta = {}) => (dispatch) =>
+  dispatch({
+    type: SHST_MATCHES_RECEIVED,
+    payload: shstMatches,
+    meta,
+  });

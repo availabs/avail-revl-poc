@@ -5,6 +5,8 @@ import actionEmitter, { INVALID_ACTION_MSG } from "./actionEmitter";
 
 import { webSocketServerPort } from "../config";
 
+// TODO: Look into using UNIX Domain Sockets
+//   https://github.com/websockets/ws/blob/master/doc/ws.md#unix-domain-sockets
 const wss = new WebSocket.Server({ port: webSocketServerPort });
 
 // https://github.com/websockets/ws/blob/master/doc/ws.md#serverclosecallback

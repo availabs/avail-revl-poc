@@ -1,4 +1,4 @@
-/* eslint-disable import/first, no-restricted-syntax, no-continue, no-loop-func */
+/* eslint-disable import/first, no-restricted-syntax, no-continue, no-loop-func, no-await-in-loop */
 import { join } from "path";
 
 process.env.AVL_GTFS_CONFLATION_OUTPUT_DIR = join(
@@ -8,87 +8,22 @@ process.env.AVL_GTFS_CONFLATION_OUTPUT_DIR = join(
 
 import _ from "lodash";
 
-import { NEXT, CLOSE } from "../../app/containers/gtfsShst/constants";
+import {
+  GTFS_NETWORK_REQUESTED,
+  SHST_MATCHES_REQUESTED,
+} from "../../app/containers/gtfsShst/constants";
 
 import {
-  matchedGtfsNetworkEdge,
-  gtfsNetworkEdgeIteratorDone,
-  gtfsNetworkEdgeIteratorClosed,
+  gtfsNetworkReceived,
+  shstMatchesReceived,
 } from "../../app/containers/gtfsShst/actions";
 
 import actionEmitter from "../actionEmitter";
 
-import GtfsNetworkDAOFactory from "../../managerie/gtfs-conflation-pipeline/src/daos/GtfsNetworkDAOFactory";
-
-import { matchSegmentedShapeFeatures } from "../../managerie/gtfs-conflation-pipeline/src/daos/GtfsOsmNetworkDaoFactory/GtfsOsmNetworkDAO/SharedStreetsMatcher";
+import GtfsNetworkDaoFactory from "../../managerie/gtfs-conflation-pipeline/src/daos/GtfsNetworkDAOFactory";
+import GtfsOsmNetworkDaoFactory from "../../managerie/gtfs-conflation-pipeline/src/daos/GtfsOsmNetworkDaoFactory";
 
 const id = "server::gtfsShst";
-
-async function* matchesIter() {
-  const gtfsNetworkDAO = GtfsNetworkDAOFactory.getDAO();
-
-  const gtfsNetworkIter = gtfsNetworkDAO.makeShapeSegmentsIterator();
-
-  const networkEdges: Array<any> = [];
-  let networkEdgesSorted: any;
-
-  function* tap() {
-    for (const edge of gtfsNetworkIter) {
-      networkEdges.push(edge);
-      networkEdgesSorted = false;
-      yield edge;
-    }
-  }
-
-  let prevNetEdge: any = null;
-  const shstMatches: any[] = [];
-
-  // matchSegmentedShapeFeatures returns the batched matches sorted by networkEdge ID
-  for await (const { matchFeature } of matchSegmentedShapeFeatures(tap())) {
-    if (!networkEdgesSorted) {
-      networkEdges.sort((a: any, b: any) => a.id.localeCompare(b.id)).reverse(); // so we can use pop rather than unshift
-      networkEdgesSorted = true;
-      prevNetEdge = networkEdges.pop();
-    }
-
-    const {
-      properties: { pp_id: netEdgeId },
-    } = matchFeature;
-
-    while (netEdgeId !== prevNetEdge.id) {
-      yield {
-        gtfsNetworkEdge: prevNetEdge,
-        shstMatches: shstMatches.length ? shstMatches : null,
-      };
-
-      shstMatches.length = 0;
-      prevNetEdge = networkEdges.pop();
-    }
-
-    shstMatches.push(matchFeature);
-  }
-
-  if (prevNetEdge) {
-    yield { gtfsNetworkEdge: prevNetEdge, shstMatches };
-  }
-
-  let unmatchedEdge = networkEdges.pop();
-  while (unmatchedEdge) {
-    yield { gtfsNetworkEdge: unmatchedEdge, shstMatches: null };
-    unmatchedEdge = networkEdges.pop();
-  }
-}
-
-const matchesIterators = {};
-
-const returnIterator = (iter: any) => {
-  try {
-    // https://github.com/JoshuaWise/better-sqlite3/issues/78#issuecomment-342001014
-    iter.return();
-  } catch (err) {
-    //
-  }
-};
 
 const dispatchNoSourceError = () =>
   actionEmitter.dispatch({
@@ -106,59 +41,44 @@ actionEmitter.subscribe(async (action) => {
 
   const {
     type,
+    payload,
     meta: { $source_id },
   } = action;
+
+  if (!$source_id) {
+    return dispatchNoSourceError();
+  }
 
   const reactionMeta = {
     $source_id: id,
     $target_id: $source_id,
   };
 
-  switch (type) {
-    case NEXT: {
-      if (!$source_id) {
-        return dispatchNoSourceError();
-      }
+  if (type === GTFS_NETWORK_REQUESTED) {
+    console.log(GTFS_NETWORK_REQUESTED);
+    const gtfsNetworkDAO = GtfsNetworkDaoFactory.getDAO();
 
-      if (!matchesIterators[$source_id]) {
-        matchesIterators[$source_id] = matchesIter();
-      }
+    const network = gtfsNetworkDAO.getNetwork();
 
-      const { value: matchedNetEdge, done } = await matchesIterators[
-        $source_id
-      ].next();
-
-      if (done) {
-        returnIterator(matchesIterators[$source_id]);
-        delete matchesIterators[$source_id];
-
-        const reaction = gtfsNetworkEdgeIteratorDone(reactionMeta);
-        return actionEmitter.dispatch(reaction);
-      }
-
-      const reaction = matchedGtfsNetworkEdge(matchedNetEdge, reactionMeta);
-
-      return actionEmitter.dispatch(reaction);
-    }
-
-    case CLOSE: {
-      if (!$source_id) {
-        return dispatchNoSourceError();
-      }
-
-      if (matchesIterators[$source_id]) {
-        returnIterator(matchesIterators[$source_id]);
-      }
-
-      returnIterator(matchesIterators[$source_id]);
-      delete matchesIterators[$source_id];
-
-      const reaction = gtfsNetworkEdgeIteratorClosed(reactionMeta);
-      return actionEmitter.dispatch(reaction);
-    }
-    default:
-      return null;
+    console.log(network.length);
+    gtfsNetworkReceived(network, reactionMeta)(actionEmitter.dispatch);
   }
+
+  if (type === SHST_MATCHES_REQUESTED) {
+    console.log(SHST_MATCHES_REQUESTED);
+
+    const gtfsOsmNetworkDAO = GtfsOsmNetworkDaoFactory.getDAO();
+
+    const requestedGtfsShapes = payload;
+
+    const shstMatches = gtfsOsmNetworkDAO.getShstMatchesForShapes(
+      requestedGtfsShapes
+    );
+
+    shstMatchesReceived(shstMatches, reactionMeta)(actionEmitter.dispatch);
+  }
+
+  return null;
 });
 
 export default id;
