@@ -18,12 +18,21 @@ import { useSelector, useDispatch } from "react-redux";
 import _ from "lodash";
 import mapboxgl from "mapbox-gl";
 
+import FormGroup from "@material-ui/core/FormGroup";
+import FormControlLabel from "@material-ui/core/FormControlLabel";
+import Switch from "@material-ui/core/Switch";
+import Grid from "@material-ui/core/Grid";
+import Paper from "@material-ui/core/Paper";
+import Typography from "@material-ui/core/Typography";
+
 // https://stackoverflow.com/q/50909438/3970755
 import "mapbox-gl/dist/mapbox-gl.css";
 
 import * as turf from "@turf/turf";
 
+import useStyles from "../../../styles/useStyles";
 import { gtfsShapesSelected, gtfsShapesSelectedReset } from "../actions";
+
 import {
   selectGtfsNetworkEdges,
   getSelectedGtfsShapes,
@@ -58,11 +67,16 @@ const shstMatchesLayer = {
 };
 
 // https://docs.mapbox.com/api/maps/#mapbox-styles
-// const style = "mapbox://styles/mapbox/satellite-streets-v11";
-const style = "mapbox://styles/mapbox/dark-v10";
+const mapboxDarkStyle = "mapbox://styles/mapbox/dark-v10";
+// Tried, but wow!  https://github.com/mapbox/mapbox-gl-js/issues/4006
+// const mapboxSatelliteStyle = "mapbox://styles/mapbox/satellite-streets-v11";
 
 export default function MapboxMap() {
+  const classes = useStyles();
+
   const [map, setMap]: [any, Dispatch<SetStateAction<null>>] = useState(null);
+  const [showShstMatches, setShowShstMatches] = useState(true);
+  const [explodeShstMatches, setExplodeShstMatches] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -78,14 +92,12 @@ export default function MapboxMap() {
 
   // Initialize the target_map_lines layer. Fired once, on component mount.
   useEffect(() => {
-    console.log("target_map_lines initialization");
-
     const _map: any = new mapboxgl.Map({
       // Happens after render, and therefore after React has
       //   set mapEl.current to the corresponding DOM node.
       // The empty string is just for passing the typechecker.
       container: mapEl.current || "",
-      style,
+      style: mapboxDarkStyle,
       center: [AVAIL_LON, AVAIL_LAT],
       zoom: ZOOM,
     });
@@ -182,7 +194,11 @@ export default function MapboxMap() {
       setMap(_map);
     });
     // https://reactjs.org/docs/hooks-effect.html#tip-optimizing-performance-by-skipping-effects
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
+
+  // update the map's style
+  useEffect(() => {}, [map, explodeShstMatches]);
 
   // update the map's target_map_lines source layer when a new gtfsNetwork is provided.
   useEffect(() => {
@@ -191,13 +207,18 @@ export default function MapboxMap() {
       Array.isArray(gtfsNetworkEdges) &&
       gtfsNetworkEdges.length
     ) {
-      console.log("target_map_lines source layer update");
-
       const featureCollection = turf.featureCollection(gtfsNetworkEdges);
 
       map.getSource(target_map_lines).setData(featureCollection);
     }
   }, [map, gtfsNetworkEdges]);
+
+  // update the map's target_map_lines source layer when a new gtfsNetwork is provided.
+  useEffect(() => {
+    if (map !== null && map.style.getLayer(shst_matches)) {
+      map.setFilter(shst_matches, showShstMatches);
+    }
+  }, [map, showShstMatches]);
 
   // update the map's shst_matches source layer when a new shstMatches are provided.
   useEffect(() => {
@@ -256,8 +277,6 @@ export default function MapboxMap() {
   // https://docs.mapbox.com/mapbox-gl-js/api/map/#map#setfilter
   useEffect(() => {
     if (map !== null && Array.isArray(gtfsNetworkEdges)) {
-      console.log("target_map_lines filters update");
-
       // Set the filter
       const shapeIds = selectedGtfsShapes || [];
 
@@ -294,5 +313,49 @@ export default function MapboxMap() {
     }
   }, [map, gtfsNetworkEdges, selectedGtfsShapes]);
 
-  return <div ref={mapEl} style={{ height: "97%", width: "100%" }} />;
+  const header =
+    Array.isArray(selectedGtfsShapes) && selectedGtfsShapes.length === 1 ? (
+      <FormGroup row>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={showShstMatches}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                setShowShstMatches(event.target.checked);
+              }}
+            />
+          }
+          label="Show Matches"
+        />
+        <FormControlLabel
+          control={
+            <Switch
+              disabled={!showShstMatches}
+              checked={explodeShstMatches}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                setExplodeShstMatches(event.target.checked);
+              }}
+            />
+          }
+          label="Explode Matches"
+        />
+      </FormGroup>
+    ) : (
+      <Typography>
+        SharedStreets matches render when a single GTFS Shape is selected
+      </Typography>
+    );
+
+  // https://material-ui.com/components/switches/#customized-switches
+  return (
+    <Paper className={classes.paper}>
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          {header}
+          <Paper className={classes.paper} />
+        </Grid>
+      </Grid>
+      <div ref={mapEl} style={{ height: "800px", width: "100%" }} />
+    </Paper>
+  );
 }

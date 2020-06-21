@@ -32,8 +32,6 @@ export const requestShstMatches = (gtfsShapesIds, meta = {}) => (
 ) => {
   const shstMatches = getShstMatches(getState());
 
-  console.log({ gtfsShapesIds, shstMatches });
-
   const reqGtfsShapes =
     Array.isArray(gtfsShapesIds) && gtfsShapesIds.length > 0
       ? gtfsShapesIds.filter((shapeId) => _.isUndefined(shstMatches[shapeId]))
@@ -57,10 +55,8 @@ export const gtfsShapesSelected = (selectedGtfsShapes, meta = {}) => async (
     meta,
   });
 
-  console.log(selectedGtfsShapes.length);
   if (Array.isArray(selectedGtfsShapes)) {
     if (selectedGtfsShapes.length <= SHST_MATCHES_REQUEST_LIMIT) {
-      console.log("Request matches for selectedShapes");
       await dispatch(requestShstMatches(selectedGtfsShapes, meta));
     } else {
       console.warn(

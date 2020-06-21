@@ -20,8 +20,6 @@ export default function GtfsShstView() {
   // https://stackoverflow.com/a/57530482/3970755 (dispatch function identity is stable)
   // https://github.com/facebook/create-react-app/issues/6880#issuecomment-486636121
   useEffect(() => {
-    console.log("REQUEST NETWORK SIDE EFFECT");
-
     dispatch(requestGtfsNetwork());
   }, [dispatch]);
 
@@ -32,9 +30,7 @@ export default function GtfsShstView() {
         <Grid container spacing={3}>
           {/* Chart */}
           <Grid item lg={12}>
-            <Paper className={classes.paper} style={{ height: 800 }}>
-              <MapboxMap />
-            </Paper>
+            <MapboxMap />
           </Grid>
           {/* Table */}
           <Grid item lg={12}>
