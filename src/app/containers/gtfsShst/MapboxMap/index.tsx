@@ -50,7 +50,8 @@ const AVAIL_LAT = 42.676631;
 const AVAIL_LON = -73.821632;
 const ZOOM = 14;
 
-const target_map_lines = "target_map_lines";
+const gtfs_network_edges = "gtfs_network_edges";
+const gtfs_network_nodes = "gtfs_network_nodes";
 const shst_matches = "shst_matches";
 
 const shstMatchesLayer = {
@@ -83,7 +84,8 @@ function fitMapBounds(
       ? ["in", "shape_id"].concat(shapeIds)
       : false;
 
-    map.setFilter(target_map_lines, filter);
+    map.setFilter(gtfs_network_edges, filter);
+    map.setFilter(gtfs_network_nodes, filter);
 
     if (shapeIds.length) {
       // Set the bounds
@@ -132,7 +134,7 @@ export default function MapboxMap() {
   // https://reactjs.org/docs/hooks-reference.html#useref
   const mapEl = useRef(null);
 
-  // Initialize the target_map_lines layer. Fired once, on component mount.
+  // Initialize the gtfs_network_edges layer. Fired once, on component mount.
   useEffect(() => {
     const _map: any = new mapboxgl.Map({
       // Happens after render, and therefore after React has
@@ -146,18 +148,39 @@ export default function MapboxMap() {
 
     // https://docs.mapbox.com/help/tutorials/use-mapbox-gl-js-with-react/#set-the-apps-default-state
     _map.on("load", () => {
-      _map.addSource(target_map_lines, { type: "geojson", data: null });
+      _map.addSource(gtfs_network_edges, { type: "geojson", data: null });
+      _map.addSource(gtfs_network_nodes, { type: "geojson", data: null });
 
       _map.addLayer({
-        id: target_map_lines,
+        id: gtfs_network_edges,
         type: "line",
-        source: target_map_lines,
+        source: gtfs_network_edges,
+        layout: {
+          "line-join": "round",
+          "line-cap": "round",
+        },
         paint: {
           "line-color": "red",
           "line-opacity": 0.75,
           "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1, 14, 3],
           // https://docs.mapbox.com/mapbox-gl-js/style-spec/expressions/#camera-expressions
           "line-offset": ["interpolate", ["linear"], ["zoom"], 8, 0, 14, 3],
+        },
+      });
+
+      _map.addLayer({
+        id: gtfs_network_nodes,
+        type: "circle",
+        source: gtfs_network_nodes,
+        paint: {
+          "circle-color": "red",
+          "circle-radius": {
+            base: 1,
+            stops: [
+              [8, 1],
+              [14, 5],
+            ],
+          },
         },
       });
 
@@ -168,7 +191,7 @@ export default function MapboxMap() {
         closeOnClick: false,
       });
 
-      _map.on("mouseenter", target_map_lines, (e: any) => {
+      _map.on("mouseenter", gtfs_network_edges, (e: any) => {
         _map.getCanvas().style.cursor = "pointer";
         if (Array.isArray(e.features) && e.features.length > 0) {
           const popupTableRows = e.features.reduce(
@@ -194,7 +217,7 @@ export default function MapboxMap() {
         }
       });
 
-      _map.on("mouseleave", target_map_lines, () => {
+      _map.on("mouseleave", gtfs_network_edges, () => {
         _map.getCanvas().style.cursor = "";
         popup.remove();
       });
@@ -205,7 +228,7 @@ export default function MapboxMap() {
         const bbox = [e.point.x, e.point.y, e.point.x, e.point.y];
         // https://docs.mapbox.com/mapbox-gl-js/api/map/#map#queryrenderedfeatures
         const features = _map.queryRenderedFeatures(bbox, {
-          layers: [target_map_lines],
+          layers: [gtfs_network_edges],
         });
 
         if (features.length === 0) {
@@ -225,16 +248,48 @@ export default function MapboxMap() {
     // https://reactjs.org/docs/hooks-effect.html#tip-optimizing-performance-by-skipping-effects
   }, [dispatch]);
 
-  // update the map's target_map_lines source layer when a new gtfsNetwork is provided.
+  // update the map's gtfs_network_edges source layer when a new gtfsNetwork is provided.
   useEffect(() => {
     if (
       map !== null &&
       Array.isArray(gtfsNetworkEdges) &&
       gtfsNetworkEdges.length
     ) {
-      const featureCollection = turf.featureCollection(gtfsNetworkEdges);
+      const edgesFeatureCollection = turf.featureCollection(gtfsNetworkEdges);
 
-      map.getSource(target_map_lines).setData(featureCollection);
+      map.getSource(gtfs_network_edges).setData(edgesFeatureCollection);
+
+      const stopsCache = {};
+
+      for (let i = 0; i < gtfsNetworkEdges.length; ++i) {
+        const gtfsNetEdge = gtfsNetworkEdges[i];
+
+        const {
+          properties: { shape_id },
+        } = gtfsNetEdge;
+        const coordinates = turf.getCoords(gtfsNetEdge);
+
+        const startPoint = JSON.stringify(
+          turf.point(
+            _.first(coordinates).map((c: number) => _.round(c, 6)),
+            { shape_id }
+          )
+        );
+        const endPoint = JSON.stringify(
+          turf.point(
+            _.last(coordinates).map((c: number) => _.round(c, 6)),
+            { shape_id }
+          )
+        );
+
+        stopsCache[startPoint] = 1;
+        stopsCache[endPoint] = 1;
+      }
+
+      const stops = Object.keys(stopsCache).map((str) => JSON.parse(str));
+      const nodesFeatureCollection = turf.featureCollection(stops);
+
+      map.getSource(gtfs_network_nodes).setData(nodesFeatureCollection);
     }
   }, [map, gtfsNetworkEdges]);
 
@@ -321,7 +376,7 @@ export default function MapboxMap() {
     }
   }, [map, shstMatches, explodeShstMatches]);
 
-  // update the map's target_map_lines filter when new selectedGtfsShapes
+  // update the map's gtfs_network_edges filter when new selectedGtfsShapes
   // https://docs.mapbox.com/help/tutorials/create-interactive-hover-effects-with-mapbox-gl-js/
   // https://github.com/mapbox/mapbox-gl-js/issues/6876#issuecomment-401136352
   // https://docs.mapbox.com/mapbox-gl-js/api/map/#map#setfilter
