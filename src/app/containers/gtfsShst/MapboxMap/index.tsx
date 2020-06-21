@@ -30,6 +30,7 @@ import Tooltip from "@material-ui/core/Tooltip";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 import * as turf from "@turf/turf";
+import keyboardJS from "keyboardjs";
 
 import useStyles from "../../../styles/useStyles";
 import { gtfsShapesSelected, gtfsShapesSelectedReset } from "../actions";
@@ -37,6 +38,7 @@ import { gtfsShapesSelected, gtfsShapesSelectedReset } from "../actions";
 import {
   selectGtfsNetworkEdges,
   getSelectedGtfsShapes,
+  getGtfsShapeIds,
   getShstMatches,
 } from "../selectors";
 
@@ -115,9 +117,11 @@ export default function MapboxMap() {
   const [map, setMap]: [any, Dispatch<SetStateAction<null>>] = useState(null);
   const [showShstMatches, setShowShstMatches] = useState(true);
   const [explodeShstMatches, setExplodeShstMatches] = useState(false);
+  const [keyBindingsEnabled, setKeyBindingsEnabled] = useState(true);
 
   const dispatch = useDispatch();
 
+  const gtfsShapeIds = useSelector(getGtfsShapeIds);
   const gtfsNetworkEdges = useSelector(selectGtfsNetworkEdges);
   const selectedGtfsShapes: string[] | null = useSelector(
     getSelectedGtfsShapes
@@ -234,7 +238,7 @@ export default function MapboxMap() {
     }
   }, [map, gtfsNetworkEdges]);
 
-  // update the map's target_map_lines source layer when a new gtfsNetwork is provided.
+  // when the showShstMatches boolean changes, update the shst_matches filter
   useEffect(() => {
     if (map !== null && map.style.getLayer(shst_matches)) {
       map.setFilter(shst_matches, showShstMatches);
@@ -279,19 +283,25 @@ export default function MapboxMap() {
         // // If performance becomes an issue, there are remedies.
         // //   https://docs.mapbox.com/help/troubleshooting/working-with-large-geojson-data/
         // //   http://bl.ocks.org/ryanbaumann/04c442906638e27db9da243f29195592
+        if (map.style.getLayer(shst_matches)) {
+          map.removeLayer(shst_matches);
+          map.removeSource(shst_matches);
+        }
+
         map.addSource(shst_matches, {
           type: "geojson",
           data: featureCollection,
         });
 
         map.addLayer(shstMatchesLayer);
+        map.setFilter(shst_matches, showShstMatches);
       } else if (map.style.getLayer(shst_matches)) {
         // https://github.com/visgl/react-map-gl/issues/474#issuecomment-371471634
         map.removeLayer(shst_matches);
         map.removeSource(shst_matches);
       }
     }
-  }, [map, selectedGtfsShapes, shstMatches]);
+  }, [map, selectedGtfsShapes, shstMatches, showShstMatches]);
 
   // update the map's style
   useEffect(() => {
@@ -321,56 +331,186 @@ export default function MapboxMap() {
     }
   }, [map, gtfsNetworkEdges, selectedGtfsShapes]);
 
-  const header =
-    Array.isArray(selectedGtfsShapes) && selectedGtfsShapes.length === 1 ? (
-      <FormGroup row>
-        <Tooltip
-          title={
-            <Typography>
-              Show the output of the conflation process for the selected GTFS
-              shape.
-            </Typography>
+  useEffect(() => {
+    keyboardJS.reset();
+    if (keyBindingsEnabled) {
+      keyboardJS.bind("h", (e) => {
+        if (e) {
+          e.preventRepeat();
+        }
+
+        if (_.isEmpty(gtfsShapeIds)) {
+          return null;
+        }
+
+        // If there are more than one selectedGtfsShapes, take the last one.
+        if (
+          Array.isArray(selectedGtfsShapes) &&
+          selectedGtfsShapes.length > 1
+        ) {
+          return dispatch(gtfsShapesSelected([_.last(selectedGtfsShapes)]));
+        }
+
+        // If there is one selectedGtfsShapes, take the next one in the gtfsShapeIds list
+        if (
+          Array.isArray(gtfsShapeIds) &&
+          Array.isArray(selectedGtfsShapes) &&
+          selectedGtfsShapes.length === 1
+        ) {
+          const [curSelShpId] = selectedGtfsShapes;
+          const curShpIdx = gtfsShapeIds.indexOf(curSelShpId);
+
+          const nextShpId =
+            curShpIdx === 0
+              ? _.last(gtfsShapeIds)
+              : gtfsShapeIds[curShpIdx - 1];
+
+          return dispatch(gtfsShapesSelected([nextShpId]));
+        }
+
+        return dispatch(gtfsShapesSelected([_.last(gtfsShapeIds)]));
+      });
+
+      keyboardJS.bind("l", (e) => {
+        if (e) {
+          e.preventRepeat();
+        }
+
+        if (_.isEmpty(gtfsShapeIds)) {
+          return null;
+        }
+
+        // If there are more than one selectedGtfsShapes, take the last one.
+        if (
+          Array.isArray(selectedGtfsShapes) &&
+          selectedGtfsShapes.length > 1
+        ) {
+          return dispatch(gtfsShapesSelected([_.first(selectedGtfsShapes)]));
+        }
+
+        // If there is one selectedGtfsShapes, take the next one in the gtfsShapeIds list
+        if (
+          Array.isArray(gtfsShapeIds) &&
+          Array.isArray(selectedGtfsShapes) &&
+          selectedGtfsShapes.length === 1
+        ) {
+          const [curSelShpId] = selectedGtfsShapes;
+          const curShpIdx = gtfsShapeIds.indexOf(curSelShpId);
+
+          const nextShpId =
+            curShpIdx === gtfsShapeIds.length - 1
+              ? _.first(gtfsShapeIds)
+              : gtfsShapeIds[curShpIdx + 1];
+
+          return dispatch(gtfsShapesSelected([nextShpId]));
+        }
+
+        return dispatch(gtfsShapesSelected([_.last(gtfsShapeIds)]));
+      });
+
+      keyboardJS.bind("n", (e) => {
+        if (e) {
+          e.preventRepeat();
+        }
+
+        return setShowShstMatches(!showShstMatches);
+      });
+
+      keyboardJS.bind("m", (e) => {
+        if (e) {
+          e.preventRepeat();
+        }
+
+        return setExplodeShstMatches(!explodeShstMatches);
+      });
+    }
+  }, [
+    dispatch,
+    keyBindingsEnabled,
+    gtfsShapeIds,
+    selectedGtfsShapes,
+    setShowShstMatches,
+    showShstMatches,
+    setExplodeShstMatches,
+    explodeShstMatches,
+  ]);
+
+  // https://reactjs.org/docs/hooks-effect.html#example-using-hooks-1
+  useEffect(() => () => keyboardJS.reset(), []);
+
+  const shstMatchesEnabled =
+    Array.isArray(selectedGtfsShapes) && selectedGtfsShapes.length === 1;
+  const header = (
+    <FormGroup row>
+      <Tooltip
+        title={
+          <Typography>
+            Show the output of the conflation process for the selected GTFS
+            shape.
+            {shstMatchesEnabled
+              ? ""
+              : "(SharedStreets matches render when a single GTFS Shape is selected.)"}
+          </Typography>
+        }
+      >
+        <FormControlLabel
+          control={
+            <Switch
+              disabled={!shstMatchesEnabled}
+              checked={showShstMatches}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                setShowShstMatches(event.target.checked);
+              }}
+            />
           }
-        >
-          <FormControlLabel
-            control={
-              <Switch
-                checked={showShstMatches}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  setShowShstMatches(event.target.checked);
-                }}
-              />
-            }
-            label="Show Matches"
-          />
-        </Tooltip>
-        <Tooltip
-          title={
-            <Typography>
-              If explode matches is enabled, matches for a GTFS network segment
-              are offset at closer zoom levels for distingishability.
-            </Typography>
+          label="Show Matches"
+        />
+      </Tooltip>
+      <Tooltip
+        title={
+          <Typography>
+            If explode matches is enabled, matches for a GTFS network segment
+            are offset at closer zoom levels for better visibility.
+          </Typography>
+        }
+      >
+        <FormControlLabel
+          control={
+            <Switch
+              disabled={!shstMatchesEnabled || !showShstMatches}
+              checked={explodeShstMatches}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                setExplodeShstMatches(event.target.checked);
+              }}
+            />
           }
-        >
-          <FormControlLabel
-            control={
-              <Switch
-                disabled={!showShstMatches}
-                checked={explodeShstMatches}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  setExplodeShstMatches(event.target.checked);
-                }}
-              />
-            }
-            label="Explode Matches"
-          />
-        </Tooltip>
-      </FormGroup>
-    ) : (
-      <Typography>
-        SharedStreets matches render when a single GTFS Shape is selected
-      </Typography>
-    );
+          label="Explode Matches"
+        />
+      </Tooltip>
+      <Tooltip
+        title={
+          <Typography>
+            Enable the GTFS shapes iteration keybindings. Pressing &quot;h&quot;
+            selects the previous GTFS shape. Pressing &quot;l&quot; selects the
+            next GTFS shape. &quot;n&quot; toggles the show matches option.
+            &quot;m&quot; toggles the explode matches option.
+          </Typography>
+        }
+      >
+        <FormControlLabel
+          control={
+            <Switch
+              checked={keyBindingsEnabled}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                setKeyBindingsEnabled(event.target.checked);
+              }}
+            />
+          }
+          label="Enable Key Bindings"
+        />
+      </Tooltip>
+    </FormGroup>
+  );
 
   // https://material-ui.com/components/switches/#customized-switches
   return (

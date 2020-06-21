@@ -35,6 +35,27 @@ export const getShstMatches = (state) =>
 // )
 // );
 
+export const getGtfsShapeIds = createSelector(
+  [selectGtfsNetworkEdges],
+  (gtfsNetworkEdges) => {
+    if (gtfsNetworkEdges === null) {
+      return null;
+    }
+
+    const shapeIds = new Set();
+
+    for (let i = 0; i < gtfsNetworkEdges.length; ++i) {
+      const {
+        properties: { shape_id },
+      } = gtfsNetworkEdges[i];
+
+      shapeIds.add(shape_id);
+    }
+
+    return [...shapeIds].sort();
+  }
+);
+
 export const selectGtfsShapesSummary = createSelector(
   [selectGtfsNetworkEdges],
   (gtfsNetworkEdges) => {
